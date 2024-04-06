@@ -9,6 +9,7 @@ const app = express()
 dotenv.config({
     path: './.env'
 })
+
 app.use(cors({
     origin: process.env.CORS,
     credentials: true
@@ -24,11 +25,11 @@ app.use(express.static("public"))
 
 connectDB()
     .then(() => {
-        app.listen(process.env.PORT || 8001, () => {
+        app.listen(process.env.PORT || 8000, () => {
             console.log(`Server running of Port ${process.env.PORT}`);
         })
     })
     .catch((error) => console.log("Database Connection Failed!", error))
 
 
-app.use('/user', router)
+app.use('/api/user', router)

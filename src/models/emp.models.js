@@ -1,65 +1,67 @@
 import mongoose from "mongoose";
+import bcrypt from 'bcrypt'
 
 const adminSchema = new mongoose.Schema({
-    EmpId: {
+    empId: {
         type: Number,
         required: true,
     },
-    EmpName: {
+    empName: {
         type: String,
         required: true,
         trim: true,
-        index: true
     },
-    Email: {
+    email: {
         type: String,
         required: true,
         unique: true,
         lowercase: true,
         trim: true,
-        index: true
     },
-    Mobile:
+    mobile:
     {
         type: Number,
         required: true,
         trim: true,
-        index: true
     },
-    AccoutType:
+    accType:
     {
-        type: Boolean,
-        required: true,
-        index: true
+        type: String,
+        required: true
     },
-    EmpRole:
+    empRole:
     {
         type: String,
         required: true,
-        index: true
     },
-    Status:
+    status:
     {
-        type: String,
-        required: true,
-        trim: true,
-        index: true
+        type: String
+
     },
-    Password:
+    password:
     {
         type: String,
         required: true,
         trim: true,
-        index: true
     },
-    Confirm_Password:
+    cfmpassword:
     {
         type: String,
         required: true,
         trim: true,
-        index: true
+    },
+    refresherToken:
+    {
+        type: String,
     }
 }, { timestamps: true })
+
+adminSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) return next()
+    const orig_pass = this.password;
+    console.log(orig_pass);
+})
 
 const EmpModel = new mongoose.model('EmpModel', adminSchema)
 
