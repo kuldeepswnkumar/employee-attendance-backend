@@ -1,25 +1,17 @@
 import { EmpModel } from '../models/emp.models.js'
 import { ApiResponce } from '../utils/ApiResponse.js'
-import { ApiErrors } from '../utils/ApiError.js'
+import { asyncHandler } from '../utils/asyncHandler.js'
+import { ApiErrorResponce } from '../utils/ApiErrorRes.js'
+
 
 const RegisterUser = (async (req, res) => {
     try {
         const { empId, empName, email, mobile, accType, empRole, status, password, cfmpassword } = req.body
 
-        if (!empId === "") {
-            throw new ApiErrors("Id is required!")
-        }
-        if (!empName === "") {
-            throw new ApiErrors("Name is required!")
-        }
-        if (!email === "") {
-            throw new ApiErrors("Email is required!")
-        }
-        if (!mobile === "") {
-            throw new ApiErrors("Mobile is required!")
-        }
-        if (!password === "") {
-            throw new ApiErrors("Password is required!")
+        if (!(empId) || !(empName) || !(email) || !(mobile) || !(accType) || !(empRole) || !(password) || !(cfmpassword)) {
+            return res.status(400).json(
+                new ApiErrorResponce(404, "All fields are required!")
+            )
         }
 
         const existsUser = EmpModel.findOne({
@@ -28,7 +20,9 @@ const RegisterUser = (async (req, res) => {
         // console.log('existsUser', existsUser);
 
         if (!existsUser) {
-            throw new ApiErrors(402, "User with id and email are already existed!")
+            return res.status(400).json(
+                new ApiErrorResponce(402, "User with id and email are already existed!")
+            )
         }
 
         const empobj = {
@@ -52,7 +46,9 @@ const RegisterUser = (async (req, res) => {
         )
 
         if (!createdUser) {
-            throw new ApiErrors(404, "Somethings went worng while register user!")
+            return res.status(400).json(
+                new ApiErrorResponce(404, "Somethings went worng while register user!")
+            )
         }
 
 
@@ -60,14 +56,52 @@ const RegisterUser = (async (req, res) => {
             new ApiResponce(200, createdUser, "You are registered!")
         )
     } catch (err) {
-        // console.log("err", err)
+        console.log("err", err)
         return res.status(400).json(
-            new ApiResponce(400, [], "Oops! Something went wrong")
+            new ApiErrorResponce(400, [], "Oops! Something went wrong")
         )
-
     }
-
-
 })
 
-export { RegisterUser }
+const LoginUser = (async (req, res) => {
+    try {
+        const { empName, email, password } = req.body
+
+
+        if (!(email) || !(password)) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "Email Id and Password is required!")
+            )
+        }
+        const user = await EmpModel.findOne({
+            $or: [{ email }, { empName }]
+        })
+
+        //If user does not existed in database
+        if (!user) {
+            return res.status(404).json(
+                new ApiErrorResponce(400, "User does not existed!")
+            )
+        }
+
+        //Verify frontend password and backend password 
+        const validPassword = await user.isPasswordCorrect(password)
+
+        if (!validPassword) {
+            return res.status(404).json(
+                new ApiErrorResponce(400, "Invalid Credential")
+            )
+        }
+
+        res.status(201).json(
+            new ApiResponce(200, "User Logged In!")
+        )
+    } catch (error) {
+        console.log("An error occor", error);
+        return res.status(404).json(
+            new ApiErrorResponce(404, [], "Oops! Somethings went wrong!")
+        )
+    }
+})
+
+export { RegisterUser, LoginUser }

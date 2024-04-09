@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt'
 
+
 const adminSchema = new mongoose.Schema({
     empId: {
         type: Number,
@@ -51,17 +52,29 @@ const adminSchema = new mongoose.Schema({
         required: true,
         trim: true,
     },
-    refresherToken:
-    {
-        type: String,
+    refreshToken: {
+        type: String
     }
 }, { timestamps: true })
 
+
+//Mongoose middlewares(pre) (save is event)
 adminSchema.pre("save", async function (next) {
+    //if other field update occur then passward will not be update
     if (!this.isModified("password")) return next()
     const orig_pass = this.password;
+    this.password = await bcrypt.hash(orig_pass, 10)
     console.log(orig_pass);
+    next()
 })
+
+
+adminSchema.methods.isPasswordCorrect = async function (password) {
+    const match = await bcrypt.compare(password, this.password)
+    return match;
+}
+
+
 
 const EmpModel = new mongoose.model('EmpModel', adminSchema)
 
