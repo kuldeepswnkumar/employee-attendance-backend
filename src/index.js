@@ -3,6 +3,8 @@ import dotenv from 'dotenv'
 import connectDB from './dbConnect/dbconnection.js'
 import cors from 'cors'
 import router from './routes/emp.route.js'
+import cookieParser from 'cookie-parser'
+
 
 const app = express()
 
@@ -21,7 +23,7 @@ app.use(express.json({ limit: '16kb' }))
 app.use(urlencoded({ extended: true, limit: '16kb' }))
 //It is use for store some files and img
 app.use(express.static("public"))
-
+app.use(cookieParser())
 
 connectDB()
     .then(() => {

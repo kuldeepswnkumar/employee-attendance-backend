@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 
 const adminSchema = new mongoose.Schema({
@@ -38,7 +39,6 @@ const adminSchema = new mongoose.Schema({
     status:
     {
         type: String
-
     },
     password:
     {
@@ -72,6 +72,37 @@ adminSchema.pre("save", async function (next) {
 adminSchema.methods.isPasswordCorrect = async function (password) {
     const match = await bcrypt.compare(password, this.password)
     return match;
+}
+
+adminSchema.methods.generateAccessToken = async function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+            empId: this.empId,
+            empName: this.empName,
+            email: this.email,
+            mobile: this.mobile,
+            accType: this.accType,
+            empRole: this.empRole,
+            status: this.status
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+        }
+    )
+}
+
+adminSchema.methods.generateRefreshToken = async function () {
+    return jwt.sign(
+        {
+            _id: this._id
+        },
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: '1d'
+        }
+    )
 }
 
 

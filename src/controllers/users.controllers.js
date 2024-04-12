@@ -1,8 +1,26 @@
 import { EmpModel } from '../models/emp.models.js'
 import { ApiResponce } from '../utils/ApiResponse.js'
-import { asyncHandler } from '../utils/asyncHandler.js'
 import { ApiErrorResponce } from '../utils/ApiErrorRes.js'
 
+const generateAccessandrefreshToken = async (userId) => {
+    try {
+        const users = await EmpModel.findById(userId)
+        const accessToken = await users.generateAccessToken()
+        const refreshToken = await users.generateRefreshToken()
+
+        users.refreshToken = refreshToken
+
+
+        //refreshToken save in data base
+        await users.save({ validateBeforeSave: false })
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        return res.status(400).json(
+            new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
+        )
+    }
+}
 
 const RegisterUser = (async (req, res) => {
     try {
@@ -42,7 +60,7 @@ const RegisterUser = (async (req, res) => {
         const user = await EmpModel.create(empobj)
         // console.log('user', user);
         const createdUser = await EmpModel.findOne(user._id).select(
-            "-password -cfmpassword"
+            "-password -cfmpassword -refreshToken"
         )
 
         if (!createdUser) {
@@ -87,21 +105,80 @@ const LoginUser = (async (req, res) => {
         //Verify frontend password and backend password 
         const validPassword = await user.isPasswordCorrect(password)
 
+        console.log(validPassword);
         if (!validPassword) {
             return res.status(404).json(
                 new ApiErrorResponce(400, "Invalid Credential")
             )
         }
 
-        res.status(201).json(
-            new ApiResponce(200, "User Logged In!")
+        const { accessToken, refreshToken } = await generateAccessandrefreshToken(user._id)
+
+        console.log(accessToken);
+        console.log(refreshToken);
+        const loggedInUser = await EmpModel.findById(user._id).select("-password -cfmpassword -refreshToken")
+
+        // console.log(loggedInUser);
+
+        //It is manageble by server not frontend
+        const options = {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true
+        }
+
+        let resp = {
+            user: loggedInUser, accessToken, refreshToken
+        }
+        // console.log("resp", resp);
+        return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", refreshToken, options).json(
+            new ApiResponce(200,
+                resp,
+                "User Logged In!"),
         )
+
     } catch (error) {
-        console.log("An error occor", error);
         return res.status(404).json(
-            new ApiErrorResponce(404, [], "Oops! Somethings went wrong!")
-        )
+            new ApiErrorResponce(404, "Oops! Somethings went wrong!")
+        ),
+            console.log(error);
     }
 })
 
-export { RegisterUser, LoginUser }
+const LogoutUsers = (async (req, res) => {
+    try {
+        await EmpModel.findByIdAndUpdate(
+            req.user._id,
+            {
+                $set: {
+                    "refreshToken": undefined
+                }
+            },
+            {
+                new: true
+            }
+        )
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None'
+        }
+
+        return res.status(200)
+            .clearCookie("accessToken", options)
+            .clearCookie("refreshToken", options)
+            .json(
+                new ApiResponce(200, "User Logout!")
+            )
+
+    } catch (error) {
+        // console.log(error);
+        return res.status(400).json(
+            new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
+        )
+        // console.log(error);
+    }
+})
+
+export { RegisterUser, LoginUser, generateAccessandrefreshToken, LogoutUsers }
