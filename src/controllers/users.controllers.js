@@ -114,11 +114,9 @@ const LoginUser = (async (req, res) => {
 
         const { accessToken, refreshToken } = await generateAccessandrefreshToken(user._id)
 
-        console.log(accessToken);
-        console.log(refreshToken);
         const loggedInUser = await EmpModel.findById(user._id).select("-password -cfmpassword -refreshToken")
 
-        // console.log(loggedInUser);
+
 
         //It is manageble by server not frontend
         const options = {
@@ -173,11 +171,10 @@ const LogoutUsers = (async (req, res) => {
             )
 
     } catch (error) {
-        // console.log(error);
+
         return res.status(400).json(
             new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
         )
-        // console.log(error);
     }
 })
 
