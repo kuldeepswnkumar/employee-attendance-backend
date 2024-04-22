@@ -12,7 +12,8 @@ const verifyToken = async (req, res, next) => {
                 new ApiErrorResponce(401, "Unauthorized request!")
             )
         }
-        // console.log(token);
+        console.log(req.cookies);
+        console.log(token);
 
         const decodeToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
 
@@ -29,6 +30,7 @@ const verifyToken = async (req, res, next) => {
         req.user = user
         next()
     } catch (error) {
+        console.log(error);
         return res.status(400).json(
             new ApiErrorResponce(401, "Invalid Access Token")
         )

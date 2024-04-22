@@ -105,8 +105,8 @@ adminSchema.methods.generateRefreshToken = async function () {
     )
 }
 
-
-
 const EmpModel = new mongoose.model('EmpModel', adminSchema)
+
+
 
 export { EmpModel }
