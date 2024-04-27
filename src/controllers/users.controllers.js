@@ -3,6 +3,9 @@ import { ApiResponce } from '../utils/ApiResponse.js'
 import { ApiErrorResponce } from '../utils/ApiErrorRes.js'
 import { uploadOnCloudinary } from '../utils/cloudnary.js'
 import { EmployeeModels } from '../models/employee.model.js'
+import { clockModel } from '../models/clock.models.js'
+import jwt from 'jsonwebtoken'
+
 
 const generateAccessandrefreshToken = async (userId) => {
     try {
@@ -10,14 +13,17 @@ const generateAccessandrefreshToken = async (userId) => {
         const accessToken = await users.generateAccessToken()
         const refreshToken = await users.generateRefreshToken()
 
+        users.accessToken = accessToken
         users.refreshToken = refreshToken
-
+        // console.log("users : ", users);
 
         //refreshToken save in data base
-        await users.save({ validateBeforeSave: false })
+        const resps = await users.save({ validateBeforeSave: false })
+        // console.log("resps : ", resps);
         return { accessToken, refreshToken }
 
     } catch (error) {
+        console.log('error', error)
         return res.status(400).json(
             new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
         )
@@ -87,7 +93,6 @@ const LoginUser = (async (req, res) => {
     try {
         const { empName, email, password } = req.body
 
-
         if (!(email) || !(password)) {
             return res.status(404).json(
                 new ApiErrorResponce(404, "Email Id and Password is required!")
@@ -114,6 +119,7 @@ const LoginUser = (async (req, res) => {
             )
         }
 
+
         const { accessToken, refreshToken } = await generateAccessandrefreshToken(user._id)
 
         const loggedInUser = await EmpModel.findById(user._id).select("-password -cfmpassword -refreshToken")
@@ -127,15 +133,17 @@ const LoginUser = (async (req, res) => {
             secure: true
         }
 
+
         let resp = {
             user: loggedInUser, accessToken, refreshToken
         }
         // console.log("resp", resp);
-        return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", refreshToken, options).json(
+        return res.status(200).json(
             new ApiResponce(200,
                 resp,
                 "User Logged In!"),
         )
+
 
     } catch (error) {
         return res.status(404).json(
@@ -147,28 +155,22 @@ const LoginUser = (async (req, res) => {
 
 const LogoutUsers = (async (req, res) => {
     try {
-        await EmpModel.findByIdAndUpdate(
-            req.user?._id,
-            {
-                $set: {
-                    "refreshToken": undefined
-                }
-            },
-            {
-                new: true
-            }
-        )
-        console.log("Ref", req.user._id);
-        console.log(req.user);
-        const options = {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'None'
+        const token = req.header("Authorization")?.replace("Bearer ", "")
+
+        if (!token) {
+            return res.status(401).json(
+                new ApiErrorResponce(401, "Unauthorized request!")
+            )
         }
 
+        // console.log(userUpdate);
+        // const options = {
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: 'None'
+        // }
+
         return res.status(200)
-            .clearCookie("accessToken", options)
-            .clearCookie("refreshToken", options)
             .json(
                 new ApiResponce(200, "User Logout!")
             )
@@ -191,14 +193,6 @@ const EmployeeAdd = async (req, res) => {
                 new ApiErrorResponce(404, "All fields required!!")
             )
         }
-        //Here I am getting local profile img path
-        // console.log("Body", req.body);
-        // console.log("File", req.file);
-        // console.log("Files", req.files);
-
-        // if (!req.file) {
-        //     return res.status(400).send('No file uploaded.');
-        // }
 
         const profileImgLocalPath = req.file.path;
 
@@ -408,5 +402,100 @@ const DeleteEmployee = async (req, res) => {
     }
 }
 
+//Submit Clock Data
 
-export { RegisterUser, LoginUser, generateAccessandrefreshToken, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay, UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay }
+const ClockData = async (req, res) => {
+
+    try {
+        const { inoutTime, fullDate, TimeIn, TimeOut, empId } = req.body
+
+        const empIds = Number(empId)
+        const user = await EmployeeModels.findOne({ empid: empId })
+
+        if (!user) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "User not found")
+            )
+        }
+
+        // console.log(user.empid);
+        const { fname: EmployeeName, empStatus: EmpStatus, empid: empid } = user
+
+
+        // console.log("DD", fullDate);
+        // console.log("ID", typeof empIds);
+        // console.log("id", typeof empid);
+        // console.log("EmployeeModels", user);
+        // console.log(EmployeeName);
+        // console.log(EmpStatus);
+
+        if (!(empid === empIds)) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "Invalid User!!")
+            )
+        }
+
+
+        const attenUser = await clockModel.create({
+            inoutTime,
+            EmployeeName,
+            TimeIn,
+            TimeOut,
+            empId,
+            fullDate,
+            EmpStatus
+        })
+
+        const attenedEmp = await clockModel.findById(attenUser._id)
+
+        console.log(attenedEmp);
+        if (!attenedEmp) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "User not found!!")
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, attenedEmp, "Your Attendance Marked Successfully!")
+        )
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(new ApiErrorResponce(500, "Internal Server Error"));
+    }
+}
+
+
+//Get Attendance data
+
+const AttenedEmployee = async (req, res) => {
+
+
+    const users = await clockModel.find()
+
+
+    if (!users) {
+        return res.status(404).json(
+            new ApiErrorResponce(404, "User not found!!")
+        )
+    }
+
+    return res.status(200).json(
+        new ApiResponce(200, users, "All data get!!")
+    )
+}
+
+//Delete Attendance
+
+const Attendance = async (req, res) => {
+    const deleteAttendance = await clockModel.deleteOne({ _id: req.params.id })
+    // console.log(deleteAttendance);
+    return res.status(200).json(
+        new ApiResponce(200, "Data deleted successfully!!")
+    )
+}
+
+
+export {
+    RegisterUser, LoginUser, generateAccessandrefreshToken, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
+    UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance
+}
