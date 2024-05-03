@@ -21,7 +21,6 @@ const clockScheck = new mongoose.Schema({
     },
     TimeOut: {
         type: String,
-        required: true,
         trim: true
     },
     empId: {
@@ -29,7 +28,11 @@ const clockScheck = new mongoose.Schema({
         required: true,
         trim: true
     },
-    EmpStatus: {
+    totalTime: {
+        type: String,
+        trim: true
+    },
+    myStatus: {
         type: String,
         trim: true
     }

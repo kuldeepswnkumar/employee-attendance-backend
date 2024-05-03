@@ -1,7 +1,8 @@
 import express from 'express'
 import {
     RegisterUser, LoginUser, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
-    UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance
+    UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance,
+    AddCompany
 } from '../controllers/users.controllers.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 import { upload } from '../middlewares/multer.middleware.js';
@@ -40,6 +41,11 @@ router.route('/attendance').post(ClockData)
 router.route('/attenedempview').get(AttenedEmployee)
 
 router.route('/deleteempattend/:id').delete(Attendance)
+
+
+router.route('/updateattendance').put(UpdateAttendance)
+
+router.route('/addcompany').post(AddCompany)
 
 
 

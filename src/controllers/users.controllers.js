@@ -5,6 +5,8 @@ import { uploadOnCloudinary } from '../utils/cloudnary.js'
 import { EmployeeModels } from '../models/employee.model.js'
 import { clockModel } from '../models/clock.models.js'
 import jwt from 'jsonwebtoken'
+import { get_time_diff } from '../CalculateTime.js'
+import { companyModel } from '../models/company.models.js'
 
 
 const generateAccessandrefreshToken = async (userId) => {
@@ -239,6 +241,17 @@ const EmployeeAdd = async (req, res) => {
             password,
         })
 
+        const existedEmployee = await EmployeeModels.findOne({
+            $or: [{ empid }]
+        })
+
+        console.log('existedEmployee', existedEmployee);
+        if (existedEmployee) {
+            return res.status(404).json(
+                new ApiErrorResponce('404', 'Employee already existed!')
+            )
+        }
+
         const employeeAdd = await EmployeeModels.findById(user._id).select(
             "-password"
         )
@@ -407,7 +420,13 @@ const DeleteEmployee = async (req, res) => {
 const ClockData = async (req, res) => {
 
     try {
-        const { inoutTime, fullDate, TimeIn, TimeOut, empId } = req.body
+        const { inoutTime, fullDate, TimeIn, TimeOut, empId, totalTime, myStatus } = req.body
+
+        if (!(empId) && !(inoutTime)) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "User not found")
+            )
+        }
 
         const empIds = Number(empId)
         const user = await EmployeeModels.findOne({ empid: empId })
@@ -418,16 +437,10 @@ const ClockData = async (req, res) => {
             )
         }
 
+
         // console.log(user.empid);
-        const { fname: EmployeeName, empStatus: EmpStatus, empid: empid } = user
+        const { fname: EmployeeName, empid: empid } = user
 
-
-        // console.log("DD", fullDate);
-        // console.log("ID", typeof empIds);
-        // console.log("id", typeof empid);
-        // console.log("EmployeeModels", user);
-        // console.log(EmployeeName);
-        // console.log(EmpStatus);
 
         if (!(empid === empIds)) {
             return res.status(404).json(
@@ -443,7 +456,8 @@ const ClockData = async (req, res) => {
             TimeOut,
             empId,
             fullDate,
-            EmpStatus
+            totalTime,
+            myStatus
         })
 
         const attenedEmp = await clockModel.findById(attenUser._id)
@@ -494,8 +508,115 @@ const Attendance = async (req, res) => {
     )
 }
 
+//Update Attendance
+const UpdateAttendance = async (req, res) => {
+    try {
+        const time = new Date().toLocaleTimeString('en-US');
+        console.log("CR", time);
+        const d = new Date();
+        const monthDay = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let month = monthDay[d.getMonth()];
+        let currentYear = d.getFullYear();
+        let currDate = d.getDate();
+
+        const Dates = `${currDate + " " + month + " " + currentYear}`
+        console.log(typeof "DD", Dates);
+
+        const { empIds } = req.body
+        const myIds = Number(empIds)
+        console.log(empIds);
+
+        const users = await clockModel.findOne({ empId: myIds })
+        const { empId, inoutTime, fullDate, TimeIn, TimeOut, myStatus, totalTime } = users;
+
+        const totalTimes = get_time_diff(TimeIn, TimeOut);
+        console.log("totalTime", totalTimes);
+
+
+        // if (!(inoutTime === 'checkIN' && myStatus === 'In')) {
+        //     return res.status(404).json(
+        //         new ApiErrorResponce(404, "You have aleady mark attendance or you not checkIN")
+        //     )
+        // }
+
+
+        const updatedAttendance = await clockModel.findOneAndUpdate(
+            {
+                empId: myIds
+            },
+            {
+                $set: {
+                    TimeOut: time,
+                    inoutTime: "checkOut",
+                    myStatus: "Out",
+                    totalTime: totalTimes
+                }
+            },
+            {
+                new: true
+            }
+        )
+
+        return res.status(200).json(
+            new ApiResponce(200, updatedAttendance, "Your Attendance Marked!!")
+        )
+
+    } catch (error) {
+        console.log(error);
+
+    }
+}
+
+//Add company details
+
+const AddCompany = async (req, res) => {
+    try {
+        const { compId, compName, foundyear, compWebsite, compLocation } = req.body
+
+
+        if (!compId || !compName || !foundyear || !compWebsite || !compLocation) {
+            res.status(404).json(
+                new ApiErrorResponce(404, "All fields are required!!")
+            )
+        }
+
+
+
+        const Company = await companyModel.create({
+            compId,
+            compName,
+            foundyear,
+            compWebsite,
+            compLocation
+        })
+
+        //here I am check existedCompany
+        const existedCompany = await companyModel.findOne({
+            $or: [{ compId }, { compName }]
+        })
+
+        console.log('existedCompany', existedCompany);
+        if (existedCompany) {
+            return res.status(404).json(
+                new ApiErrorResponce('404', 'Company already existed!')
+            )
+        }
+        const createdCompany = await companyModel.findById(Company._id)
+
+        return res.status(200).json(
+            new ApiResponce(200, createdCompany, "Company Added Successfully!")
+        )
+    } catch (error) {
+        return res.status(400).json(
+            new ApiErrorResponce(400, "Something went wrong while add company!!")
+        )
+    }
+
+}
+
+
 
 export {
     RegisterUser, LoginUser, generateAccessandrefreshToken, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
-    UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance
+    UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance, AddCompany
 }
