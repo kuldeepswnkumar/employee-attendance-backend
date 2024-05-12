@@ -1,5 +1,5 @@
 import mongoose from "mongoose"
-
+import jwt from 'jsonwebtoken'
 
 const EmpSchema = new mongoose.Schema({
     empid: {
@@ -93,8 +93,43 @@ const EmpSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    refreshToken: {
+        type: String
+    }
 
 }, { timestamps: true })
+
+
+
+EmpSchema.methods.generateAccessTokenEmp = async function () {
+    return jwt.sign(
+        {
+            _id: this._id,
+            empid: this.empid,
+            fname: this.fname,
+            lname: this.lname,
+            gender: this.gender
+
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        {
+            expiresIn: '1d'
+        }
+    )
+}
+
+
+EmpSchema.methods.generateRefreshTokenEmp = async function () {
+    return jwt.sign(
+        {
+            _id: this._id
+        },
+        process.env.REFRESH_TOKEN_SECRET,
+        {
+            expiresIn: '1d'
+        }
+    )
+}
 
 const EmployeeModels = new mongoose.model('EmployeeModels', EmpSchema)
 

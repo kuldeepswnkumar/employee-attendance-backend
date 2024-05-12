@@ -2,9 +2,11 @@ import express from 'express'
 import {
     RegisterUser, LoginUser, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
     UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance,
-    AddCompany
+    AddCompany, ViewCompany, DeleteCompany, AddSchedule, GetScheduleData, updateScheduleData, DeleteScheduleData, AddLeave,
+    GetLeaveData, DeleteLeave, AddDepartment, GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee
 } from '../controllers/users.controllers.js';
-import { verifyToken } from '../middlewares/auth.middleware.js';
+
+import { verifyToken, verifyEmployeeToken } from '../middlewares/auth.middleware.js';
 import { upload } from '../middlewares/multer.middleware.js';
 
 
@@ -42,10 +44,41 @@ router.route('/attenedempview').get(AttenedEmployee)
 
 router.route('/deleteempattend/:id').delete(Attendance)
 
-
 router.route('/updateattendance').put(UpdateAttendance)
 
 router.route('/addcompany').post(AddCompany)
+
+router.route('/viewcompany').get(ViewCompany)
+
+router.route('/deletecompany/:id').delete(DeleteCompany)
+
+router.route('/addschedule').post(AddSchedule)
+
+router.route('/getscheduledata').get(GetScheduleData)
+
+router.route('/updatescheduledata/:id').get(updateScheduleData)
+
+router.route('/updatescheduledata/:id').put(updateScheduleData)
+
+router.route('/deletescheduledata/:id').delete(DeleteScheduleData)
+
+router.route('/addleave').post(AddLeave)
+
+router.route('/getleavedata').get(GetLeaveData)
+
+router.route('/deleteleave/:id').delete(DeleteLeave)
+
+router.route('/adddepartment').post(AddDepartment)
+
+router.route('/getdepartmentdata').get(GetDepartmentData)
+
+router.route('/deletedepartment/:id').delete(DeleteDepartment)
+
+//Empolyee Dashboard
+
+router.route('/employeelogin').post(EmployeeLogin)
+
+router.route('/logoutemployee').get(verifyEmployeeToken, LogoutEmployee)
 
 
 

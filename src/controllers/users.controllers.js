@@ -7,6 +7,9 @@ import { clockModel } from '../models/clock.models.js'
 import jwt from 'jsonwebtoken'
 import { get_time_diff } from '../CalculateTime.js'
 import { companyModel } from '../models/company.models.js'
+import { scheduleModel } from '../models/schedule.model.js'
+import { leaveModel } from '../models/leave.models.js'
+import { departmentModel } from '../models/department.models.js'
 
 
 const generateAccessandrefreshToken = async (userId) => {
@@ -14,6 +17,28 @@ const generateAccessandrefreshToken = async (userId) => {
         const users = await EmpModel.findById(userId)
         const accessToken = await users.generateAccessToken()
         const refreshToken = await users.generateRefreshToken()
+
+        users.accessToken = accessToken
+        users.refreshToken = refreshToken
+        // console.log("users : ", users);
+
+        //refreshToken save in data base
+        const resps = await users.save({ validateBeforeSave: false })
+        // console.log("resps : ", resps);
+        return { accessToken, refreshToken }
+
+    } catch (error) {
+        console.log('error', error)
+        return res.status(400).json(
+            new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
+        )
+    }
+}
+const generatefreshTokenAccessToken = async (empid) => {
+    try {
+        const users = await EmployeeModels.findById(empid)
+        const accessToken = await users.generateAccessTokenEmp()
+        const refreshToken = await users.generateRefreshTokenEmp()
 
         users.accessToken = accessToken
         users.refreshToken = refreshToken
@@ -100,6 +125,7 @@ const LoginUser = (async (req, res) => {
                 new ApiErrorResponce(404, "Email Id and Password is required!")
             )
         }
+
         const user = await EmpModel.findOne({
             $or: [{ email }, { empName }]
         })
@@ -217,6 +243,17 @@ const EmployeeAdd = async (req, res) => {
             )
         }
 
+        const existedEmployee = await EmployeeModels.findOne({
+            $or: [{ empid }]
+        })
+
+        console.log('existedEmployee', existedEmployee);
+        if (existedEmployee) {
+            return res.status(404).json(
+                new ApiErrorResponce('404', 'Employee already existed!')
+            )
+        }
+
         const user = await EmployeeModels.create({
             empid,
             fname,
@@ -241,16 +278,7 @@ const EmployeeAdd = async (req, res) => {
             password,
         })
 
-        const existedEmployee = await EmployeeModels.findOne({
-            $or: [{ empid }]
-        })
 
-        console.log('existedEmployee', existedEmployee);
-        if (existedEmployee) {
-            return res.status(404).json(
-                new ApiErrorResponce('404', 'Employee already existed!')
-            )
-        }
 
         const employeeAdd = await EmployeeModels.findById(user._id).select(
             "-password"
@@ -575,11 +603,21 @@ const AddCompany = async (req, res) => {
 
 
         if (!compId || !compName || !foundyear || !compWebsite || !compLocation) {
-            res.status(404).json(
+            return res.status(404).json(
                 new ApiErrorResponce(404, "All fields are required!!")
             )
         }
 
+        const existedCompany = await companyModel.findOne({
+            $or: [{ compId }]
+        })
+
+        // console.log('existedCompany', existedCompany);
+        if (existedCompany) {
+            return res.status(404).json(
+                new ApiErrorResponce('404', 'Company already existed!')
+            )
+        }
 
 
         const Company = await companyModel.create({
@@ -591,16 +629,7 @@ const AddCompany = async (req, res) => {
         })
 
         //here I am check existedCompany
-        const existedCompany = await companyModel.findOne({
-            $or: [{ compId }, { compName }]
-        })
 
-        console.log('existedCompany', existedCompany);
-        if (existedCompany) {
-            return res.status(404).json(
-                new ApiErrorResponce('404', 'Company already existed!')
-            )
-        }
         const createdCompany = await companyModel.findById(Company._id)
 
         return res.status(200).json(
@@ -614,9 +643,423 @@ const AddCompany = async (req, res) => {
 
 }
 
+//View Company Details
+const ViewCompany = async (req, res) => {
+    try {
+        const data = await companyModel.find()
+        if (!data) {
+            return res.status(400).json(
+                new ApiErrorResponce(400, "Result Not Found!")
+            )
+        }
+        return res.status(200).json(
+            new ApiResponce(200, data, "Getting All Data")
+        )
+    } catch (error) {
+        console.log("Failed to Get Data", error);
+    }
+}
 
+//Delete Company
+const DeleteCompany = async (req, res) => {
+    try {
+        const data = await companyModel.deleteOne({ _id: req.params.id })
+
+        // console.log("data", data);
+
+        if (!data) {
+            return res.status(400).json(
+                new ApiErrorResponce(400, "Result Not Found!!")
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, "Data deleted successfully!!")
+        )
+    } catch (error) {
+        console.log("Failed to Delete Data", error);
+    }
+}
+
+//Add schedule
+const AddSchedule = async (req, res) => {
+    try {
+        const { empId, empName, strTime, etime, hours, rdays, fdate, tdate, empStatus } = req.body
+
+        if (!empId || !strTime || !etime || !hours || !rdays || !fdate || !tdate || !empStatus) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'All fields are required!!')
+            )
+        }
+
+
+        const empData = await EmployeeModels.findOne({ empid: empId })
+        if (!empData) {
+            return res.status(400).json(
+                new ApiErrorResponce(400, 'User not found!')
+            )
+        }
+        const { empid, fname } = empData
+
+
+        const scheduleData = await scheduleModel.create({
+            empId: empid,
+            empName: fname,
+            strTime,
+            etime,
+            hours,
+            rdays,
+            fdate,
+            tdate,
+            empStatus
+        })
+
+        const createdSchedule = await scheduleModel.findById(scheduleData._id)
+
+        return res.status(200).json(
+            new ApiResponce(200, createdSchedule, "Your Details Schedules!!")
+        )
+    } catch (error) {
+        return res.status(500).json(
+            ApiErrorResponce(500, "Something went wrong while schedule data!")
+        )
+    }
+}
+
+
+//Get all schedule data
+
+const GetScheduleData = async (req, res) => {
+    try {
+        const AllData = await scheduleModel.find()
+
+        if (!AllData) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "Not records found")
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, AllData, "All Date Get")
+        )
+    } catch (error) {
+        console.log("error", error);
+        return res.status(500).json(
+            new ApiErrorResponce(500, "Something went wrong !!")
+        )
+    }
+}
+
+//Update Schedule Data
+const updateScheduleData = async (req, res) => {
+    try {
+        const scheduleData = await scheduleModel.findByIdAndUpdate(
+            {
+                _id: req.params.id
+            },
+            {
+                $set: req.body
+            },
+            {
+                new: true
+            }
+        )
+
+        if (!scheduleData) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "User not found!!")
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, scheduleData, "Data Updated Successfully!")
+        )
+
+
+    } catch (error) {
+        console.log("error", error);
+        return res.status(500).json(
+            new ApiErrorResponce(500, "Something went wrong !!")
+        )
+    }
+}
+
+
+//Delete Schedule Data
+const DeleteScheduleData = async (req, res) => {
+    try {
+        const DeleteData = await scheduleModel.deleteOne({ _id: req.params.id })
+
+        if (!DeleteData) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "Not records found")
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, DeleteData, "Date Delete Successfully!")
+        )
+    } catch (error) {
+        console.log("error", error);
+        return res.status(500).json(
+            new ApiErrorResponce(500, "Something went wrong !!")
+        )
+    }
+}
+
+//Add leave
+const AddLeave = async (req, res) => {
+    try {
+        const { empId, decription, leavefrom, leaveto, returndate, leaveStatus } = req.body
+
+        if (!decription || !leavefrom || !leaveto || !returndate || !leaveStatus) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "All fields are required!")
+            )
+        }
+
+
+        const empdata = await EmployeeModels.findOne({ empid: empId })
+
+        // console.log('empdata', empdata);
+
+        if (!empdata) {
+            return res.status(400).json(
+                new ApiErrorResponce(400, "User Not Found!")
+            )
+        }
+
+        const { empid, fname } = empdata
+
+        console.log('empName', fname);
+
+        const createLeave = await leaveModel.create({
+            empId: empid,
+            empName: fname,
+            decription,
+            leavefrom,
+            leaveto,
+            returndate,
+            leaveStatus
+        })
+
+        const CreatedLeave = await leaveModel.findById(createLeave._id)
+
+        // console.log('CreatedLeave', CreatedLeave);
+
+        return res.status(201).json(
+            new ApiResponce(201, CreatedLeave, 'Leave Added Successfully!')
+        )
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(
+            ApiErrorResponce(500, "Something went wrong while add leave data!")
+        )
+    }
+
+}
+
+//Getting all leave data
+const GetLeaveData = async (req, res) => {
+    try {
+        const AllData = await leaveModel.find()
+
+        if (!AllData) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'Data not found!')
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, AllData, 'Get All Data!')
+        )
+
+    } catch (error) {
+        return res.status(500).json(
+            ApiErrorResponce(500, "Something went wrong while get data!")
+        )
+    }
+}
+
+//Delete leave
+const DeleteLeave = async (req, res) => {
+    try {
+        const deleteData = await leaveModel.deleteOne({ _id: req.params.id })
+        if (!deleteData) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, "user not found!")
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, deleteData, 'Data deleted successfully!')
+        )
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+//Add Department
+const AddDepartment = async (req, res) => {
+    try {
+        const { departId, deptName, jobRole, deprtEmail, deprtStatus } = req.body
+
+        if (!departId || !deptName || !jobRole || !deprtEmail || !deprtStatus) {
+            return res.status(404).json(
+                new ApiResponce(404, 'All fields are required!')
+            )
+        }
+
+        const exitstDepartment = await departmentModel.findOne({
+            $or: [{ departId }, { deptName }]
+        })
+        if (exitstDepartment) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'Department already existed!')
+            )
+        }
+
+        const createDepart = await departmentModel.create({
+            departId,
+            deptName,
+            jobRole,
+            deprtEmail,
+            deprtStatus,
+        })
+
+        const createdDepartment = await departmentModel.findById(createDepart._id)
+
+        return res.status(201).json(
+            new ApiResponce(201, createdDepartment, 'Department add successfully!')
+        )
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(
+            ApiErrorResponce(500, "Something went wrong while add department data!")
+        )
+    }
+}
+
+//Getting all department data
+const GetDepartmentData = async (req, res) => {
+    try {
+        const deprtData = await departmentModel.find()
+
+        if (!deprtData) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'Data not found!')
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, deprtData, 'Get All Data!')
+        )
+
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+const DeleteDepartment = async (req, res) => {
+    try {
+        const deleteDepart = await departmentModel.deleteOne({ _id: req.params.id })
+
+        if (!deleteDepart) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'Data not found!')
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, deleteDepart, 'Data deleted successfully!')
+        )
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+//Employee Login
+const EmployeeLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body
+
+        if (!email || !password) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'All fiedls are required!')
+            )
+        }
+
+        const employee = await EmployeeModels.findOne({
+            $or: [{ email } || { password }]
+        })
+
+        const { accessToken, refreshToken } = await generatefreshTokenAccessToken(employee._id)
+
+        if (!employee) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'Employee not found!')
+            )
+        }
+
+
+        //It is manageble by server not frontend
+        const options = {
+            httpOnly: true,
+            sameSite: 'None',
+            secure: true
+        }
+
+        const loggedEmp = await EmployeeModels.findById(employee._id).select("-password");
+
+        let resp = [
+            { loggedEmp, accessToken: accessToken, refreshToken: refreshToken }
+        ]
+
+        return res.status(200).json(
+            new ApiResponce(200, resp, 'Employee Logged Successfully!')
+        )
+    } catch (error) {
+        console.log('error', error);
+        return res.status(500).json(
+            new ApiErrorResponce(500, 'Something went wrong!')
+        )
+    }
+}
+
+//Employee Logout
+const LogoutEmployee = (async (req, res) => {
+    try {
+        const token = req.header("Authorization")?.replace("Bearer ", "")
+
+        if (!token) {
+            return res.status(401).json(
+                new ApiErrorResponce(401, "Unauthorized request!")
+            )
+        }
+
+        // console.log(userUpdate);
+        // const options = {
+        //     httpOnly: true,
+        //     secure: true,
+        //     sameSite: 'None'
+        // }
+
+        return res.status(200)
+            .json(
+                new ApiResponce(200, "User Logout!")
+            )
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json(
+            new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
+        )
+    }
+})
 
 export {
     RegisterUser, LoginUser, generateAccessandrefreshToken, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
-    UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance, AddCompany
+    UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance, AddCompany, ViewCompany
+    , DeleteCompany, AddSchedule, GetScheduleData, updateScheduleData, DeleteScheduleData, AddLeave, GetLeaveData, DeleteLeave, AddDepartment,
+    GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee
 }

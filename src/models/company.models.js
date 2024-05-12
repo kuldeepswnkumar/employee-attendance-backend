@@ -4,7 +4,6 @@ const companySachema = new mongoose.Schema({
     compId: {
         type: Number,
         required: true,
-        trim: true
     },
     compName: {
         type: String,
