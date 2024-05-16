@@ -4,12 +4,12 @@ import { ApiErrorResponce } from '../utils/ApiErrorRes.js'
 import { uploadOnCloudinary } from '../utils/cloudnary.js'
 import { EmployeeModels } from '../models/employee.model.js'
 import { clockModel } from '../models/clock.models.js'
-import jwt from 'jsonwebtoken'
 import { get_time_diff } from '../CalculateTime.js'
 import { companyModel } from '../models/company.models.js'
 import { scheduleModel } from '../models/schedule.model.js'
 import { leaveModel } from '../models/leave.models.js'
 import { departmentModel } from '../models/department.models.js'
+import { reportModel } from '../models/report.models.js'
 
 
 const generateAccessandrefreshToken = async (userId) => {
@@ -1052,14 +1052,87 @@ const LogoutEmployee = (async (req, res) => {
     } catch (error) {
         console.log(error);
         return res.status(400).json(
-            new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
+            new ApiErrorResponce(400, "Something went wrong while logout!!")
         )
     }
 })
 
+//add report
+const ReportAdd = async (req, res) => {
+    try {
+        const { empId, reportbox, reportdate } = req.body
+
+        if (!empId || !reportbox || !reportdate) {
+            return res.status(404).status(
+                new ApiErrorResponce(404, 'All fiedls are required!')
+            )
+        }
+
+        const empData = await EmployeeModels.findOne({ empid: empId })
+        // console.log('empData', empData);
+
+
+        if (!empData) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'Employee not found!')
+            )
+        }
+
+        const { empid, fname } = empData
+
+
+
+
+        // console.log('empid', empid);
+        // console.log('fname', fname);
+
+        const createReport = await reportModel.create({
+            empId: empid,
+            empName: fname,
+            reportbox,
+            reportdate,
+        })
+
+        const createdReport = await reportModel.findById(createReport._id)
+
+        // console.log('createdReport', createdReport);
+
+        return res.status(201).json(
+            new ApiResponce(201, createdReport, 'Report Created Successfully!')
+        )
+
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json(
+            new ApiErrorResponce(400, "Something went wrong while report added!")
+        )
+    }
+}
+
+//getting report data
+const getAllReportData = async (req, res) => {
+    try {
+        const allReportData = await reportModel.find()
+
+        if (!allReportData) {
+            return res.status(404).status(
+                new ApiErrorResponce(404, 'Data not found!')
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, allReportData, 'Getting all data!')
+        )
+    } catch (error) {
+        console.log(error);
+        return res.status(400).json(
+            new ApiErrorResponce(400, "Something went wrong while generating refresh and access token!!")
+        )
+    }
+}
 export {
     RegisterUser, LoginUser, generateAccessandrefreshToken, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
     UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance, AddCompany, ViewCompany
     , DeleteCompany, AddSchedule, GetScheduleData, updateScheduleData, DeleteScheduleData, AddLeave, GetLeaveData, DeleteLeave, AddDepartment,
-    GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee
+    GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee, ReportAdd, getAllReportData
 }

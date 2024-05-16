@@ -3,7 +3,8 @@ import {
     RegisterUser, LoginUser, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
     UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance,
     AddCompany, ViewCompany, DeleteCompany, AddSchedule, GetScheduleData, updateScheduleData, DeleteScheduleData, AddLeave,
-    GetLeaveData, DeleteLeave, AddDepartment, GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee
+    GetLeaveData, DeleteLeave, AddDepartment, GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee, ReportAdd,
+    getAllReportData
 } from '../controllers/users.controllers.js';
 
 import { verifyToken, verifyEmployeeToken } from '../middlewares/auth.middleware.js';
@@ -79,6 +80,10 @@ router.route('/deletedepartment/:id').delete(DeleteDepartment)
 router.route('/employeelogin').post(EmployeeLogin)
 
 router.route('/logoutemployee').get(verifyEmployeeToken, LogoutEmployee)
+
+router.route('/reportadd').post(ReportAdd)
+
+router.route('/getreportdata').get(getAllReportData)
 
 
 
