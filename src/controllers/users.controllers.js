@@ -306,13 +306,18 @@ const EmployeeAdd = async (req, res) => {
 const EmpDataDisplay = async (req, res) => {
 
     try {
-        const data = await EmployeeModels.find();
+        // let page = Number(req.query.page) || 1
+        // let limit = Number(req.query.limit) || 3
+        // .skip((page - 1) * limit).limit(limit);
 
+        let data = await EmployeeModels.find()
         if (!data) {
             return res.status(404).json(
                 new ApiErrorResponce(404, "Result Not found!!")
             )
         }
+
+
         return res.status(200).json(
             new ApiResponce(200, data, "All data get!!")
         )
@@ -555,7 +560,10 @@ const UpdateAttendance = async (req, res) => {
         console.log(empIds);
 
         const users = await clockModel.findOne({ empId: myIds })
-        const { empId, inoutTime, fullDate, TimeIn, TimeOut, myStatus, totalTime } = users;
+
+        const { TimeIn, TimeOut } = users;
+
+        const OutTime = new Date().toLocaleTimeString('en-US');
 
         const totalTimes = get_time_diff(TimeIn, TimeOut);
         console.log("totalTime", totalTimes);
@@ -566,6 +574,7 @@ const UpdateAttendance = async (req, res) => {
         //         new ApiErrorResponce(404, "You have aleady mark attendance or you not checkIN")
         //     )
         // }
+
 
 
         const updatedAttendance = await clockModel.findOneAndUpdate(
@@ -686,7 +695,7 @@ const AddSchedule = async (req, res) => {
     try {
         const { empId, empName, strTime, etime, hours, rdays, fdate, tdate, empStatus } = req.body
 
-        if (!empId || !strTime || !etime || !hours || !rdays || !fdate || !tdate || !empStatus) {
+        if (!strTime || !etime || !hours || !rdays || !fdate || !tdate || !empStatus) {
             return res.status(404).json(
                 new ApiErrorResponce(404, 'All fields are required!!')
             )
@@ -819,6 +828,16 @@ const AddLeave = async (req, res) => {
         }
 
 
+        const existedData = await leaveModel.findOne({
+            $or: [{ empId }]
+        })
+
+        if (existedData) {
+            // alert("Record already existed!")
+            return res.status(400).json(
+                new ApiErrorResponce(400, "Record already existed!")
+            )
+        }
         const empdata = await EmployeeModels.findOne({ empid: empId })
 
         // console.log('empdata', empdata);
@@ -876,7 +895,40 @@ const GetLeaveData = async (req, res) => {
 
     } catch (error) {
         return res.status(500).json(
-            ApiErrorResponce(500, "Something went wrong while get data!")
+            new ApiErrorResponce(500, "Something went wrong while get data!")
+        )
+    }
+}
+
+//Update leave
+const UpdateLeave = async (req, res) => {
+    try {
+        const UpdateLeave = await leaveModel.findByIdAndUpdate(
+            {
+                _id: req.params.id
+            },
+            {
+                $set: req.body
+            },
+            {
+                new: true
+            }
+        )
+
+        if (!UpdateLeave) {
+            return res.status(404).json(
+                new ApiErrorResponce(404, 'User not found!!')
+            )
+        }
+
+        return res.status(200).json(
+            new ApiResponce(200, UpdateLeave, 'Leave Updated Successfully!')
+        )
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json(
+            new ApiErrorResponce(500, "Something went wrong while update leave!")
         )
     }
 }
@@ -1134,5 +1186,5 @@ export {
     RegisterUser, LoginUser, generateAccessandrefreshToken, LogoutUsers, EmployeeAdd, EmpDataDisplay, ChangePassword, AdminDisplay,
     UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance, AddCompany, ViewCompany
     , DeleteCompany, AddSchedule, GetScheduleData, updateScheduleData, DeleteScheduleData, AddLeave, GetLeaveData, DeleteLeave, AddDepartment,
-    GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee, ReportAdd, getAllReportData
+    GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee, ReportAdd, getAllReportData, UpdateLeave
 }

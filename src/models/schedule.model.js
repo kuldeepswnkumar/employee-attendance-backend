@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const scheduleSchme = new mongoose.Schema({
     empId: {
         type: Number,
-        required: true
+        // required: true
     },
     empName: {
         type: String,

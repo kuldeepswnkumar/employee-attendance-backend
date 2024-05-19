@@ -4,7 +4,7 @@ import {
     UpdateEmployee, DeleteEmployee, SingelEmpDataDisplay, ClockData, AttenedEmployee, Attendance, UpdateAttendance,
     AddCompany, ViewCompany, DeleteCompany, AddSchedule, GetScheduleData, updateScheduleData, DeleteScheduleData, AddLeave,
     GetLeaveData, DeleteLeave, AddDepartment, GetDepartmentData, DeleteDepartment, EmployeeLogin, LogoutEmployee, ReportAdd,
-    getAllReportData
+    getAllReportData, UpdateLeave
 } from '../controllers/users.controllers.js';
 
 import { verifyToken, verifyEmployeeToken } from '../middlewares/auth.middleware.js';
@@ -68,6 +68,10 @@ router.route('/addleave').post(AddLeave)
 router.route('/getleavedata').get(GetLeaveData)
 
 router.route('/deleteleave/:id').delete(DeleteLeave)
+
+router.route('/updateleave/:id').get(UpdateLeave)
+
+router.route('/updateleave/:id').put(UpdateLeave)
 
 router.route('/adddepartment').post(AddDepartment)
 
