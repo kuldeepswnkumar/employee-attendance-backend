@@ -9,6 +9,8 @@ const verifyToken = async (req, res, next) => {
     try {
         const token = req.header("Authorization")?.replace("Bearer ", "")
 
+        // console.log(req.headers);
+
         if (!token) {
             return res.status(401).json(
                 new ApiErrorResponce(401, "Unauthorized request!")

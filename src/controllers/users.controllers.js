@@ -23,7 +23,7 @@ const generateAccessandrefreshToken = async (userId) => {
         // console.log("users : ", users);
 
         //refreshToken save in data base
-        const resps = await users.save({ validateBeforeSave: false })
+        await users.save({ validateBeforeSave: false })
         // console.log("resps : ", resps);
         return { accessToken, refreshToken }
 
@@ -34,6 +34,7 @@ const generateAccessandrefreshToken = async (userId) => {
         )
     }
 }
+
 const generatefreshTokenAccessToken = async (empid) => {
     try {
         const users = await EmployeeModels.findById(empid)
@@ -557,23 +558,29 @@ const UpdateAttendance = async (req, res) => {
 
         const { empIds } = req.body
         const myIds = Number(empIds)
-        console.log(empIds);
+        // console.log(empIds);
 
         const users = await clockModel.findOne({ empId: myIds })
 
-        const { TimeIn, TimeOut } = users;
+        const { empId, inoutTime, TimeIn, TimeOut } = users;
 
-        const OutTime = new Date().toLocaleTimeString('en-US');
-
-        const totalTimes = get_time_diff(TimeIn, TimeOut);
-        console.log("totalTime", totalTimes);
-
-
+        console.log('inoutTime', inoutTime);
+        console.log('empId', empId);
+        // const existedTime = await clockModel.findOne({
+        //     $or: [{ empId }, { inoutTime }]
+        // })
         // if (!(inoutTime === 'checkIN' && myStatus === 'In')) {
         //     return res.status(404).json(
         //         new ApiErrorResponce(404, "You have aleady mark attendance or you not checkIN")
         //     )
         // }
+
+        const OutTime = new Date().toLocaleTimeString('en-US');
+
+        const totalTimes = get_time_diff(TimeIn, OutTime);
+        // console.log("totalTime", totalTimes);
+
+
 
 
 
@@ -821,7 +828,7 @@ const AddLeave = async (req, res) => {
     try {
         const { empId, decription, leavefrom, leaveto, returndate, leaveStatus } = req.body
 
-        if (!decription || !leavefrom || !leaveto || !returndate || !leaveStatus) {
+        if (!decription || !leavefrom || !leaveto || !returndate) {
             return res.status(404).json(
                 new ApiErrorResponce(404, "All fields are required!")
             )

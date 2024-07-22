@@ -22,7 +22,7 @@ function get_time_diff(startTime, endTime) {
         const startDate = new Date(dateString);
         const endDate = new Date(endDateString);
 
-        console.log("startDate", startDate)
+        // console.log("startDate", startDate)
         console.log("endDate", endDate.toLocaleTimeString('en-US'))
 
         // Check if the parsed dates are valid
